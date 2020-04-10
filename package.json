@@ -1,0 +1,41 @@
+{
+  "name": "fitbit-heartrate-vis",
+  "version": "1.0.0",
+  "description": "A simple webapp to visualize fitbit heart rate data",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack",
+    "watch": "webpack --watch",
+    "serve": "npm run watch & live-server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/sambe/fitbit-heartrate-vis.git"
+  },
+  "keywords": [
+    "fitbit",
+    "heartrate",
+    "visualization"
+  ],
+  "author": "Samuel Berner",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sambe/fitbit-heartrate-vis/issues"
+  },
+  "homepage": "https://github.com/sambe/fitbit-heartrate-vis#readme",
+  "devDependencies": {
+    "@babel/core": "^7.7.7",
+    "babel-core": "^6.26.3",
+    "babel-loader": "^8.0.6",
+    "babel-preset-env": "^1.7.0",
+    "babel-preset-latest": "^6.24.1",
+    "node-sass": "^4.13.0",
+    "webpack": "^4.41.5",
+    "webpack-cli": "^3.3.10"
+  },
+  "dependencies": {
+    "d3": "^5.15.0",
+    "d3-fetch": "^1.1.2"
+  }
+}
