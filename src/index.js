@@ -131,36 +131,52 @@ function fetch_token_introspect(accessToken) {
 
 // *** D3 Chart building ***
 
-function build_chart(accessToken, dateOfSleep) {
+var chart = d3.select("#chart");
 
-    var chart = d3.select("#chart");
+var outerWidth = chart.attr("width");
+var outerHeight = chart.attr("height");
 
-    var outerWidth = chart.attr("width");
-    var outerHeight = chart.attr("height");
+var margin = {top: 20, right: 30, bottom: 30, left: 40},
+    width = outerWidth - margin.left - margin.right,
+    height = outerHeight - margin.top - margin.bottom;
 
-    var margin = {top: 20, right: 30, bottom: 30, left: 40},
-        width = outerWidth - margin.left - margin.right,
-        height = outerHeight - margin.top - margin.bottom;
+var x = d3.scaleTime().rangeRound([0, width]);
 
-    var x = d3.scaleTime().rangeRound([0, width]);
+var y = d3.scaleLinear().range([height, 0]);
 
-    var y = d3.scaleLinear().range([height, 0]);
+var xAxis = d3.axisBottom(x);
 
-    var xAxis = d3.axisBottom(x);
+var yAxis = d3.axisLeft(y);
 
-    var yAxis = d3.axisLeft(y);
+chart = chart
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-    // remove previous axii before redrawing them
-    chart.selectAll(".axis").remove();
+var yAxisG = chart.append("g")
+    .attr("class", "y axis")
 
-    var existing = chart.select("g")
-    if (existing.empty()) {
-        chart = chart
-            .append("g")
-            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-    } else {
-        chart = existing
-    }
+var xAxisG = chart.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")")
+
+var graphLine = chart.append("path")
+    .attr("fill", "none")
+    .attr("stroke", "red")
+    .attr("stroke-width", 1)
+
+// resting heart rate is not available in activities-heart when asked for intraday data
+//var data2 = response["activities-heart"]
+//var restingHeartRate = data2.value.restingHeartRate
+//chart.append("line")
+//    .attr("stroke", "black")
+//    .attr("stroke-width", 1)
+//    .attr("stroke-dasharray", "4")
+//    .attr("x1", 0)
+//    .attr("x2", width)
+//    .attr("y1", y(restingHeartRate))
+//    .attr("y2", y(restingHeartRate))
+
+function update_chart_data(accessToken, dateOfSleep) {
 
     fetch_sleep_data(accessToken, dateOfSleep, function (response) {
         // TODO the following situations are currently unhandled here
@@ -180,41 +196,16 @@ function build_chart(accessToken, dateOfSleep) {
 
             y.domain(d3.extent(data, d => d.value));
 
-            // remove previous line when redrawing
-            chart.selectAll("path").remove();
-
             var lineMaker = d3.line()
                 .x(d => x(relativeTimeToDate(d.time, dateOfSleep)))
                 .y(d => y(d.value));
 
-            chart.append("path")
-                .attr("fill", "none")
-                .attr("stroke", "red")
-                .attr("stroke-width", 1)
-                .attr("d", lineMaker(data));
+            graphLine.attr("d", lineMaker(data));
 
-            chart.append("g")
-                .attr("class", "y axis")
-                .call(yAxis);
-
-            // resting heart rate is not available in activities-heart when asked for intraday data
-            //var data2 = response["activities-heart"]
-            //var restingHeartRate = data2.value.restingHeartRate
-            //chart.append("line")
-            //    .attr("stroke", "black")
-            //    .attr("stroke-width", 1)
-            //    .attr("stroke-dasharray", "4")
-            //    .attr("x1", 0)
-            //    .attr("x2", width)
-            //    .attr("y1", y(restingHeartRate))
-            //    .attr("y2", y(restingHeartRate))
+            yAxisG.call(yAxis);
 
         })
-
-        chart.append("g")
-            .attr("class", "x axis")
-            .attr("transform", "translate(0," + height + ")")
-            .call(xAxis);
+        xAxisG.call(xAxis);
 
         var existingSleepZoneBars = chart.selectAll(".bar");
         var sleepZoneBars = existingSleepZoneBars.data(data);
@@ -245,12 +236,16 @@ function build_chart(accessToken, dateOfSleep) {
 function init_form() {
     var dateText = formatDate(new Date());
     d3.select("#dateInput").property("value", dateText);
+
+    if (accessToken) {
+        update_date_of_sleep(accessToken);
+    }
 }
 
 function update_date_of_sleep(accessToken) {
     var dateText = d3.select("#dateInput").property("value");
     var date = parseDate(dateText);
-    build_chart(accessToken, date);
+    update_chart_data(accessToken, date);
 }
 
 function change_date_of_sleep(changeInDays) {
@@ -259,7 +254,7 @@ function change_date_of_sleep(changeInDays) {
     var date = parseDate(dateText);
     var changedDate = new Date(date.getTime() + changeInDays * 24 * 60 * 60 * 1000);
     dateInput.property("value", formatDate(changedDate));
-    build_chart(accessToken, changedDate)
+    update_chart_data(accessToken, changedDate)
 }
 
 function validate_date_of_sleep() {
@@ -282,6 +277,4 @@ if (accessToken === undefined) {
     loginLink.innerHTML = "Login at Fitbit";
     document.body.appendChild(loginLink);
 
-} else {
-    build_chart(accessToken, new Date());
 }
