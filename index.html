@@ -8,9 +8,15 @@
     <script src="https://d3js.org/d3-fetch.v1.min.js"></script>
     <!--<script src="dist/bundle.js"></script>-->
   </head>
-  <body>
+  <body onload="javascript:init_form();">
     <h1>Fitbit Heartrate Visualization</h1>
     <div id="insert"></div>
+    <form id="dateForm">
+      <button onclick="javascript:change_date_of_sleep(-1);">&lt;</button>
+      <button onclick="javascript:change_date_of_sleep(1);">&gt;</button>
+      <input id="dateInput" type="text" onchange="javascript:validate_date_of_sleep();">
+      <button onclick="javascript:update_date_of_sleep(accessToken);">Update</button>
+    </form>
     <svg id="chart" width="960" height="500" style="background: lightgrey"></svg>
   </body>
   <script src="src/index.js"></script>

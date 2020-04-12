@@ -36,6 +36,14 @@ function create_data_row(name, value) {
   return rowElement
 }
 
+function parseDate(text) {
+  var numbers = text.split("-");
+  var year = parseInt(numbers[0], 10);
+  var month = parseInt(numbers[1], 10);
+  var day = parseInt(numbers[2], 10);
+  return new Date(year, month-1, day, 0, 0);
+}
+
 function formatDate(date) {
   var d = new Date(date);
   var year = d.getFullYear();
@@ -71,9 +79,8 @@ function relativeTimeToDate(time, dateOfSleep) {
 
 function fetch_sleep_data(accessToken, dateOfSleep, on_response) {
     var dateFormatted = formatDate(dateOfSleep);
-    var sleepDataUrl = "https://api.fitbit.com/1.2/user/-/sleep/date/" + dateFormatted + ".json"
-    var headers = new Headers({"Authorization": "Bearer " + accessToken});
-    d3.json(sleepDataUrl, {"method": "GET", "headers": headers}).then(on_response)
+    var sleepDataUrl = "https://api.fitbit.com/1.2/user/-/sleep/date/" + dateFormatted + ".json";
+    fetch_json(accessToken, sleepDataUrl).then(on_response);
 }
 
 // *** Heart rate data fetching ***
@@ -84,8 +91,12 @@ function fetch_heart_rate_data(accessToken, startTime, endTime, on_response) {
     var start = formatHHmmTime(startTime);
     var end = formatHHmmTime(endTime);
     var heartRateDataUrl = "https://api.fitbit.com/1/user/-/activities/heart/date/" + startDate + "/" + endDate + "/1min/time/" + start + "/" + end + ".json";
+    fetch_json(accessToken, heartRateDataUrl).then(on_response);
+}
+
+function fetch_json(accessToken, url) {
     var headers = new Headers({"Authorization": "Bearer " + accessToken});
-    d3.json(heartRateDataUrl, {"method": "GET", "headers": headers}).then(on_response)
+    return d3.json(url, {"method": "GET", "headers": headers})
 }
 
 // *** Get Information about Fitbit Session (currently not used) ***
@@ -139,12 +150,25 @@ function build_chart(accessToken, dateOfSleep) {
 
     var yAxis = d3.axisLeft(y);
 
-    chart = chart
-        .append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    // remove previous axii before redrawing them
+    chart.selectAll(".axis").remove();
+
+    var existing = chart.select("g")
+    if (existing.empty()) {
+        chart = chart
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    } else {
+        chart = existing
+    }
 
     fetch_sleep_data(accessToken, dateOfSleep, function (response) {
-        var data = response.sleep[0].levels.data; // dateTime, level, seconds
+        // TODO the following situations are currently unhandled here
+        //      - no sleep data for a day
+        //      - main sleep is not the first sleep item
+        //      - multiple sleep items
+        //      - shorter sleep items without sleeping phases
+        var data = response.sleep.length > 0 ? response.sleep[0].levels.data : []; // dateTime, level, seconds
 
         var sleepStartTime = Date.parse(response.sleep[0].startTime)
         var sleepEndTime = Date.parse(response.sleep[0].endTime)
@@ -155,6 +179,9 @@ function build_chart(accessToken, dateOfSleep) {
             var data = response["activities-heart-intraday"].dataset; // time [HH:mm:ss], value
 
             y.domain(d3.extent(data, d => d.value));
+
+            // remove previous line when redrawing
+            chart.selectAll("path").remove();
 
             var lineMaker = d3.line()
                 .x(d => x(relativeTimeToDate(d.time, dateOfSleep)))
@@ -189,9 +216,13 @@ function build_chart(accessToken, dateOfSleep) {
             .attr("transform", "translate(0," + height + ")")
             .call(xAxis);
 
-        chart.selectAll(".bar")
-            .data(data)
-        .enter().append("rect")
+        var existingSleepZoneBars = chart.selectAll(".bar");
+        var sleepZoneBars = existingSleepZoneBars.data(data);
+        sleepZoneBars.exit().remove();
+        sleepZoneBars.enter().append("rect")
+            .attr("class", "bar")
+            .attr("stroke", "none")
+            .merge(sleepZoneBars) // after new elements created, merge existing with new for the attributes depending on data
             .attr("fill", function(d) { // TODO use color function to decode "level" to a color
                 if (d.level === "deep")
                     return "#00ff0033";
@@ -202,13 +233,37 @@ function build_chart(accessToken, dateOfSleep) {
                 else
                     return "#0000ff33";
             })
-            .attr("stroke", "none")
-            .attr("class", "bar")
             .attr("x", d => x(Date.parse(d.dateTime))) // start time
             .attr("y", 0 ) // upper end
             .attr("height", height ) // lower end
             .attr("width", d => x(Date.parse(d.dateTime)+d.seconds*1000) - x(Date.parse(d.dateTime))); // end time - start time = duration
     })
+}
+
+// HTML Form handling
+
+function init_form() {
+    var dateText = formatDate(new Date());
+    d3.select("#dateInput").property("value", dateText);
+}
+
+function update_date_of_sleep(accessToken) {
+    var dateText = d3.select("#dateInput").property("value");
+    var date = parseDate(dateText);
+    build_chart(accessToken, date);
+}
+
+function change_date_of_sleep(changeInDays) {
+    var dateInput = d3.select("#dateInput")
+    var dateText = dateInput.property("value");
+    var date = parseDate(dateText);
+    var changedDate = new Date(date.getTime() + changeInDays * 24 * 60 * 60 * 1000);
+    dateInput.property("value", formatDate(changedDate));
+    build_chart(accessToken, changedDate)
+}
+
+function validate_date_of_sleep() {
+    // TODO validate text and activate buttons only if valid
 }
 
 // *** Initialization ***
@@ -228,5 +283,5 @@ if (accessToken === undefined) {
     document.body.appendChild(loginLink);
 
 } else {
-    build_chart(accessToken, new Date(2020, 3, 10, 0, 0));
+    build_chart(accessToken, new Date());
 }
