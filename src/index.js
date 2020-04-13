@@ -234,8 +234,10 @@ function update_chart_data(accessToken, dateOfSleep) {
 // HTML Form handling
 
 function init_form() {
-    var dateText = formatDate(new Date());
-    d3.select("#dateInput").property("value", dateText);
+    if (!d3.select("#dateInput").property("value")) {
+        var dateText = formatDate(new Date());
+        d3.select("#dateInput").property("value", dateText);
+    }
 
     if (accessToken) {
         update_date_of_sleep(accessToken);
@@ -271,9 +273,16 @@ var userId = params["user_id"];
 
 if (accessToken === undefined) {
 
+    var loginUrl;
+    if (window.location.hostname === "localhost") {
+        loginUrl = "https://www.fitbit.com/oauth2/authorize?response_type=token&client_id=22BJK7&redirect_uri=http%3A%2F%2Flocalhost:8080%2F&scope=heartrate%20sleep&expires_in=2592000";
+    } else {
+        loginUrl = "https://www.fitbit.com/oauth2/authorize?response_type=token&client_id=22BPB8&redirect_uri=https%3A%2F%2Fsambe.github.io%2Ffitbit-heartrate-vis%2F&scope=heartrate%20sleep&expires_in=2592000";
+    }
+
     // Create a login link
     var loginLink = document.createElement("a");
-    loginLink.setAttribute("href", "https://www.fitbit.com/oauth2/authorize?response_type=token&client_id=22BJK7&redirect_uri=http%3A%2F%2Flocalhost:8080%2F&scope=heartrate%20sleep&expires_in=2592000");
+    loginLink.setAttribute("href", loginUrl);
     loginLink.innerHTML = "Login at Fitbit";
     document.body.appendChild(loginLink);
 
