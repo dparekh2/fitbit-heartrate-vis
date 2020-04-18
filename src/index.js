@@ -1,6 +1,7 @@
 
 // *** Helper Functions ***
 
+// copied from https://stackoverflow.com/questions/979975/how-to-get-the-value-from-the-get-parameters/979995#979995
 function parse_query_string(query) {
   var vars = query.split("&");
   var query_string = {};
@@ -73,6 +74,30 @@ function relativeTimeToDate(time, dateOfSleep) {
       time = parseSeconds(time) * 1000;
   var date = new Date(dateOfSleep.getTime() + time);
   return date;
+}
+
+// Cookie access functions, from https://stackoverflow.com/questions/14573223/set-cookie-and-get-cookie-with-javascript
+function setCookie(name,value,days) {
+    var expires = "";
+    if (days) {
+        var date = new Date();
+        date.setTime(date.getTime() + (days*24*60*60*1000));
+        expires = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+}
+function getCookie(name) {
+    var nameEQ = name + "=";
+    var ca = document.cookie.split(';');
+    for(var i=0;i < ca.length;i++) {
+        var c = ca[i];
+        while (c.charAt(0)==' ') c = c.substring(1,c.length);
+        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+    }
+    return null;
+}
+function eraseCookie(name) {
+    document.cookie = name+'=; Max-Age=-99999999;';
 }
 
 // *** Sleep data fetching ***
@@ -281,12 +306,18 @@ var userId = params["user_id"];
 
 if (accessToken === undefined) {
 
-    var loginUrl;
-    if (window.location.hostname === "localhost") {
-        loginUrl = "https://www.fitbit.com/oauth2/authorize?response_type=token&client_id=22BJK7&redirect_uri=http%3A%2F%2Flocalhost:8080%2F&scope=heartrate%20sleep&expires_in=2592000";
-    } else {
-        loginUrl = "https://www.fitbit.com/oauth2/authorize?response_type=token&client_id=22BPB8&redirect_uri=https%3A%2F%2Fsambe.github.io%2Ffitbit-heartrate-vis%2F&scope=heartrate%20sleep&expires_in=2592000";
+    var cookieKey = "fitBitApiClientId";
+
+    var clientId = getCookie(cookieKey);
+    if (clientId === null) {
+        clientId = prompt("Please enter your FitBit API Client ID", "")
+        setCookie(cookieKey, clientId, 10 * 365) // stored for 10 years
     }
+
+    function generate_login_url(clientId) {
+        return "https://www.fitbit.com/oauth2/authorize?response_type=token&client_id=" + clientId + "&redirect_uri=http%3A%2F%2Flocalhost:8080%2F&scope=heartrate%20sleep&expires_in=2592000";
+    }
+    var loginUrl = generate_login_url(clientId);
 
     // Create a login link
     var loginLink = document.createElement("a");
