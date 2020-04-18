@@ -152,6 +152,8 @@ chart = chart
     .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
+var sleepBarsContainer = chart.append("g") // to bundle them in one element that is behind the graphLine
+
 var yAxisG = chart.append("g")
     .attr("class", "y axis")
 
@@ -183,8 +185,13 @@ function update_chart_data(accessToken, dateOfSleep) {
         //      - no sleep data for a day
         //      - main sleep is not the first sleep item
         //      - multiple sleep items
-        //      - shorter sleep items without sleeping phases
-        var data = response.sleep.length > 0 ? response.sleep[0].levels.data : []; // dateTime, level, seconds
+        var data;
+        if (response.sleep.length > 0) {
+            var levels = response.sleep[0].levels;
+            data = levels.data.concat(levels.shortData); // dateTime, level, seconds
+        } else {
+            data = [];
+        }
 
         var sleepStartTime = Date.parse(response.sleep[0].startTime)
         var sleepEndTime = Date.parse(response.sleep[0].endTime)
@@ -199,6 +206,7 @@ function update_chart_data(accessToken, dateOfSleep) {
             var lineMaker = d3.line()
                 .x(d => x(relativeTimeToDate(d.time, dateOfSleep)))
                 .y(d => y(d.value));
+                //.curve(d3.curveCatmullRom.alpha(0.5)); // this could smoothen the line a bit
 
             graphLine.attr("d", lineMaker(data));
 
@@ -207,7 +215,7 @@ function update_chart_data(accessToken, dateOfSleep) {
         })
         xAxisG.call(xAxis);
 
-        var existingSleepZoneBars = chart.selectAll(".bar");
+        var existingSleepZoneBars = sleepBarsContainer.selectAll(".bar");
         var sleepZoneBars = existingSleepZoneBars.data(data);
         sleepZoneBars.exit().remove();
         sleepZoneBars.enter().append("rect")
@@ -218,7 +226,7 @@ function update_chart_data(accessToken, dateOfSleep) {
                 if (d.level === "deep")
                     return "#00ff0033";
                 else if (d.level === "wake")
-                    return "#ffffff33";
+                    return "#ffffff6f";
                 else if (d.level === "rem")
                     return "#ff00ff33";
                 else
@@ -227,7 +235,7 @@ function update_chart_data(accessToken, dateOfSleep) {
             .attr("x", d => x(Date.parse(d.dateTime))) // start time
             .attr("y", 0 ) // upper end
             .attr("height", height ) // lower end
-            .attr("width", d => x(Date.parse(d.dateTime)+d.seconds*1000) - x(Date.parse(d.dateTime))); // end time - start time = duration
+            .attr("width", d => Math.max(1, x(Date.parse(d.dateTime)+d.seconds*1000) - x(Date.parse(d.dateTime)))); // end time - start time = duration (guaranteeing at least 1 pixel width)
     })
 }
 
