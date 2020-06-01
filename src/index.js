@@ -156,7 +156,7 @@ function fetch_token_introspect(accessToken) {
 
 // *** D3 Chart building ***
 
-var chart = d3.select("#chart");
+var chart = d3.select("#chart").style("background-color", "white");
 
 var outerWidth = chart.attr("width");
 var outerHeight = chart.attr("height");
@@ -180,16 +180,22 @@ chart = chart
 var sleepBarsContainer = chart.append("g") // to bundle them in one element that is behind the graphLine
 
 var yAxisG = chart.append("g")
-    .attr("class", "y axis")
+    .attr("class", "y axis");
 
 var xAxisG = chart.append("g")
     .attr("class", "x axis")
-    .attr("transform", "translate(0," + height + ")")
+    .attr("transform", "translate(0," + height + ")");
 
 var graphLine = chart.append("path")
+    .attr("class", "graph")
     .attr("fill", "none")
-    .attr("stroke", "red")
-    .attr("stroke-width", 1)
+    .attr("stroke", "#aaa")
+    .attr("stroke-width", 1);
+
+var graphLineMovingAverage = chart.append("path")
+    .attr("class", "graph-moving-average")
+    .attr("fill", "none")
+    .attr("stroke", "#000")
 
 // resting heart rate is not available in activities-heart when asked for intraday data
 //var data2 = response["activities-heart"]
@@ -225,6 +231,7 @@ function update_chart_data(accessToken, dateOfSleep) {
 
         fetch_heart_rate_data(accessToken, sleepStartTime, sleepEndTime, function (response) {
             var data = response["activities-heart-intraday"].dataset; // time [HH:mm:ss], value
+            var movingAverageData = calculate_moving_average(data, 7);
 
             y.domain(d3.extent(data, d => d.value));
 
@@ -234,6 +241,7 @@ function update_chart_data(accessToken, dateOfSleep) {
                 //.curve(d3.curveCatmullRom.alpha(0.5)); // this could smoothen the line a bit
 
             graphLine.attr("d", lineMaker(data));
+            graphLineMovingAverage.attr("d", lineMaker(movingAverageData))
 
             yAxisG.call(yAxis);
 
@@ -249,19 +257,36 @@ function update_chart_data(accessToken, dateOfSleep) {
             .merge(sleepZoneBars) // after new elements created, merge existing with new for the attributes depending on data
             .attr("fill", function(d) { // TODO use color function to decode "level" to a color
                 if (d.level === "deep")
-                    return "#00ff0033";
+                    return "#069fb2";
                 else if (d.level === "wake")
-                    return "#ffffff6f";
+                    return "#f7786b";
                 else if (d.level === "rem")
-                    return "#ff00ff33";
-                else
-                    return "#0000ff33";
+                    return "#92a8d1";
+                else // light
+                    return "#f7cac9";
             })
             .attr("x", d => x(Date.parse(d.dateTime))) // start time
             .attr("y", 0 ) // upper end
             .attr("height", height ) // lower end
             .attr("width", d => Math.max(1, x(Date.parse(d.dateTime)+d.seconds*1000) - x(Date.parse(d.dateTime)))); // end time - start time = duration (guaranteeing at least 1 pixel width)
     })
+}
+
+function calculate_moving_average(data, windowSize) {
+    var summed = data.map(function(d, i) {
+
+        var offset = Math.floor(windowSize/2)
+        var start = Math.max(0,i-offset);
+        var end = Math.min(i+windowSize-offset, data.length-1);
+
+        var newD = {};
+        newD["time"] = d.time;
+        var slice = data.slice(start, end)
+        newD["value"] = slice.length === 0 ? d.value : d3.sum(slice, function(x) {return x["value"]}) / (end-start);
+
+        return newD;
+    })
+    return summed
 }
 
 // HTML Form handling

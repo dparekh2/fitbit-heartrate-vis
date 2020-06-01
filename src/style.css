@@ -1,5 +1,9 @@
-.bar {
-  fill: steelblue;
+h1 {
+  font-family: sans-serif;
+}
+
+.axis text, .axis path, .axis line {
+  stroke: #aaa;
 }
 
 .axis text {
@@ -9,10 +13,14 @@
 .axis path,
 .axis line {
   fill: none;
-  stroke: #000;
   shape-rendering: crispEdges;
 }
 
-.x.axis path {
-  display: none;
+.graph {
+  stroke: #666;
+}
+
+.graph-moving-average {
+  stroke: #444;
+  stroke-width: 3;
 }
