@@ -10,14 +10,15 @@
   </head>
   <body onload="javascript:init_form();">
     <h1>Fitbit Heartrate Visualization</h1>
-    <div id="insert"></div>
-    <form id="dateForm">
-      <button type="button" onclick="javascript:change_date_of_sleep(-1);">&lt;</button>
-      <button type="button" onclick="javascript:change_date_of_sleep(1);">&gt;</button>
-      <input type="text" id="dateInput" onchange="javascript:validate_date_of_sleep();">
-      <button type="submit" onclick="javascript:update_date_of_sleep(accessToken);">Update</button>
-    </form>
-    <svg id="chart" width="960" height="500" style="background: lightgrey"></svg>
+    <div style="position: relative">
+      <form id="dateForm" style="position: absolute; top: 5px; right: 30px">
+        <button type="button" onclick="javascript:change_date_of_sleep(-1);">&lt;</button>
+        <button type="button" onclick="javascript:change_date_of_sleep(1);">&gt;</button>
+        <input type="text" id="dateInput" onchange="javascript:validate_date_of_sleep();">
+        <button type="submit" onclick="javascript:update_date_of_sleep(accessToken);">Update</button>
+      </form>
+      <svg id="chart" width="960" height="500" style="background: lightgrey"></svg>
+    </div>
   </body>
   <script src="src/index.js"></script>
 </html>

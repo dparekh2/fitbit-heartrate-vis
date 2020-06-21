@@ -161,7 +161,7 @@ var chart = d3.select("#chart").style("background-color", "white");
 var outerWidth = chart.attr("width");
 var outerHeight = chart.attr("height");
 
-var margin = {top: 20, right: 30, bottom: 30, left: 40},
+var margin = {top: 40, right: 30, bottom: 30, left: 40},
     width = outerWidth - margin.left - margin.right,
     height = outerHeight - margin.top - margin.bottom;
 
@@ -169,9 +169,30 @@ var x = d3.scaleTime().rangeRound([0, width]);
 
 var y = d3.scaleLinear().range([height, 0]);
 
+var color = d3.scaleOrdinal()
+  .domain(["deep","light","rem","wake"])
+  .range(["#069fb2", "#f7cac9", "#92a8d1", "#f7786b"]);
+
 var xAxis = d3.axisBottom(x);
 
 var yAxis = d3.axisLeft(y);
+
+var legendG = chart.selectAll(".legend")
+    .data(color.domain()).enter().append("g")
+    .attr("transform", (d, i) => "translate(" + (i*60 + margin.left + 5) + "," + 10 + ")");
+
+legendG.append("rect")
+    .attr("class", "legend")
+    .attr("fill", d => color(d))
+    .attr("x", 0)
+    .attr("y", 0)
+    .attr("width", 15)
+    .attr("height", 15);
+
+legendG.append("text")
+    .attr("x", 22)
+    .attr("y", 10)
+    .text(d => d);
 
 chart = chart
     .append("g")
@@ -255,16 +276,7 @@ function update_chart_data(accessToken, dateOfSleep) {
             .attr("class", "bar")
             .attr("stroke", "none")
             .merge(sleepZoneBars) // after new elements created, merge existing with new for the attributes depending on data
-            .attr("fill", function(d) { // TODO use color function to decode "level" to a color
-                if (d.level === "deep")
-                    return "#069fb2";
-                else if (d.level === "wake")
-                    return "#f7786b";
-                else if (d.level === "rem")
-                    return "#92a8d1";
-                else // light
-                    return "#f7cac9";
-            })
+            .attr("fill", d => color(d.level))
             .attr("x", d => x(Date.parse(d.dateTime))) // start time
             .attr("y", 0 ) // upper end
             .attr("height", height ) // lower end
